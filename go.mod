@@ -4,12 +4,21 @@ go 1.17
 
 require (
 	github.com/stretchr/testify v1.7.0
+	google.golang.org/genproto v0.0.0-20211203200212-54befc351ae9
+	google.golang.org/grpc v1.42.0
 	google.golang.org/protobuf v1.27.1
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.0 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	golang.org/x/net v0.0.0-20211203184738-4852103109b8 // indirect
+	golang.org/x/sys v0.0.0-20211204120058-94396e421777 // indirect
+	golang.org/x/text v0.3.7 // indirect
+)
+
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/tysonmote/gommap v0.0.1
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

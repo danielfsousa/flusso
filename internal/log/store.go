@@ -48,7 +48,6 @@ func (s *store) Append(p []byte) (n uint64, pos uint64, err error) {
 	return uint64(w), pos, nil
 }
 
-
 // Read returns the record stored at the given position.
 func (s *store) Read(pos uint64) ([]byte, error) {
 	s.mu.Lock()

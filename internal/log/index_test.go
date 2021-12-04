@@ -26,7 +26,7 @@ func TestIndex(t *testing.T) {
 	entries := []struct {
 		Off uint32
 		Pos uint64
-	} {
+	}{
 		{Off: 0, Pos: 0},
 		{Off: 1, Pos: 10},
 	}
