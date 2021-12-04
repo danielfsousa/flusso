@@ -10,6 +10,8 @@ require (
 )
 
 require (
+	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
+	github.com/casbin/casbin v1.9.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	golang.org/x/net v0.0.0-20211203184738-4852103109b8 // indirect
 	golang.org/x/sys v0.0.0-20211204120058-94396e421777 // indirect
@@ -18,6 +20,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/tysonmote/gommap v0.0.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
