@@ -79,7 +79,7 @@ lint:
 	golangci-lint run
 
 format:
-	goimports -w .
+	goimports -w internal test
 
 compile:
 	protoc api/v1/*.proto \
