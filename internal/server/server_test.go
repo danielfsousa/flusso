@@ -203,8 +203,8 @@ func testConsumePastBoundary(t *testing.T, client, _ api.LogClient, config *Conf
 	})
 	require.Nil(t, consume)
 
-	got := grpc.Code(err)
-	want := grpc.Code(api.ErrOffsetOutOfRange{}.GRPCStatus().Err())
+	got := status.Code(err)
+	want := status.Code(api.ErrOffsetOutOfRange{}.GRPCStatus().Err())
 	require.Equal(t, want, got)
 }
 
