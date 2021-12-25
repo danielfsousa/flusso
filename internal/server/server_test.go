@@ -129,8 +129,8 @@ func setupTest(t *testing.T, fn func(*Config)) (
 		t.Logf("traces log file: %s", tracesLogFile.Name())
 
 		telemetryExporter, err = exporter.NewLogExporter(exporter.Options{
-			MetricsLogFile: metricsLogFile.Name(),
-			TracesLogFile:  tracesLogFile.Name(),
+			MetricsLogFile:    metricsLogFile.Name(),
+			TracesLogFile:     tracesLogFile.Name(),
 			ReportingInterval: time.Second,
 		})
 		require.NoError(t, err)
