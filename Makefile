@@ -1,4 +1,5 @@
 .DEFAULT_GOAL := build
+.PHONY: all init gencert build run build_and_run clean test test_coverage dep staticcheck lint format compile
 
 BINARY_NAME=flusso
 CONFIG_PATH=${HOME}/.flusso
@@ -62,7 +63,6 @@ clean:
 	go clean
 	rm ${BINARY_NAME}
 
-.PHONY: test
 test: $(CONFIG_PATH)/model.conf $(CONFIG_PATH)/policy.csv
 	go test -race ./...
 

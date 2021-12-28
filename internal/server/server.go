@@ -22,22 +22,9 @@ import (
 )
 
 type Config struct {
-	CommitLog  CommitLog
-	Authorizer Authorizer
-}
-
-type CommitLog interface {
-	Append(*api.Record) (uint64, error)
-	Read(uint64) (*api.Record, error)
-}
-
-type Authorizer interface {
-	Authorize(subject, object, action string) error
-}
-
-type grpcServer struct {
-	api.UnimplementedLogServer
-	*Config
+	CommitLog   CommitLog
+	Authorizer  Authorizer
+	GetServerer GetServerer
 }
 
 const (
@@ -45,6 +32,11 @@ const (
 	produceAction  = "produce"
 	consumeAction  = "consume"
 )
+
+type grpcServer struct {
+	api.UnimplementedLogServer
+	*Config
+}
 
 var _ api.LogServer = (*grpcServer)(nil)
 
@@ -97,7 +89,9 @@ func newgrpcServer(config *Config) (srv *grpcServer, err error) {
 	return srv, nil
 }
 
-func (s *grpcServer) Produce(ctx context.Context, req *api.ProduceRequest) (*api.ProduceResponse, error) {
+func (s *grpcServer) Produce(
+	ctx context.Context, req *api.ProduceRequest,
+) (*api.ProduceResponse, error) {
 	if err := s.Authorizer.Authorize(subject(ctx), objectWildcard, produceAction); err != nil {
 		return nil, err
 	}
@@ -108,7 +102,9 @@ func (s *grpcServer) Produce(ctx context.Context, req *api.ProduceRequest) (*api
 	return &api.ProduceResponse{Offset: offset}, nil
 }
 
-func (s *grpcServer) Consume(ctx context.Context, req *api.ConsumeRequest) (*api.ConsumeResponse, error) {
+func (s *grpcServer) Consume(
+	ctx context.Context, req *api.ConsumeRequest,
+) (*api.ConsumeResponse, error) {
 	if err := s.Authorizer.Authorize(subject(ctx), objectWildcard, consumeAction); err != nil {
 		return nil, err
 	}
@@ -135,7 +131,9 @@ func (s *grpcServer) ProduceStream(stream api.Log_ProduceStreamServer) error {
 	}
 }
 
-func (s *grpcServer) ConsumeStream(req *api.ConsumeRequest, stream api.Log_ConsumeStreamServer) error {
+func (s *grpcServer) ConsumeStream(
+	req *api.ConsumeRequest, stream api.Log_ConsumeStreamServer,
+) error {
 	for {
 		select {
 		case <-stream.Context().Done():
@@ -155,6 +153,29 @@ func (s *grpcServer) ConsumeStream(req *api.ConsumeRequest, stream api.Log_Consu
 			req.Offset++
 		}
 	}
+}
+
+func (s *grpcServer) GetServers(
+	ctx context.Context, req *api.GetServersRequest,
+) (*api.GetServersResponse, error) {
+	servers, err := s.GetServerer.GetServers()
+	if err != nil {
+		return nil, err
+	}
+	return &api.GetServersResponse{Servers: servers}, nil
+}
+
+type GetServerer interface {
+	GetServers() ([]*api.Server, error)
+}
+
+type CommitLog interface {
+	Append(*api.Record) (uint64, error)
+	Read(uint64) (*api.Record, error)
+}
+
+type Authorizer interface {
+	Authorize(subject, object, action string) error
 }
 
 func authenticate(ctx context.Context) (context.Context, error) {
