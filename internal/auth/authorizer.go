@@ -14,6 +14,9 @@ type Authorizer struct {
 
 func New(model, policy string) *Authorizer {
 	enforcer := casbin.NewEnforcer(model, policy)
+	if model == "" || policy == "" {
+		enforcer.EnableEnforce(false)
+	}
 	return &Authorizer{enforcer: enforcer}
 }
 
