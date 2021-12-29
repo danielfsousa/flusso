@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "flusso.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "flusso.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{ include "flusso.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "flusso.fullname" . }}
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      name: {{ include "flusso.fullname" . }}
+      labels: {{ include "flusso.labels" . | nindent 8 }}
+    spec:
+      initContainers:
+      - name: {{ include "flusso.fullname" . }}-config-init
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+          - |-
+            ID=$(echo $HOSTNAME | rev | cut -d- -f1 | rev)
+            cat > /var/run/flusso/config.yaml <<EOD
+            data-dir: /var/run/flusso/data
+            rpc-port: {{.Values.rpcPort}}
+            bind-addr: "$HOSTNAME.flusso.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"
+            $([ $ID != 0 ] && echo 'start-join-addrs: "flusso-0.flusso.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"')
+            bootstrap: $([ $ID = 0 ] && echo true || echo false )
+            EOD
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/flusso
+      containers:
+      - name: {{ include "flusso.fullname" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.rpcPort }}
+          name: rpc
+        - containerPort: {{ .Values.serfPort }}
+          name: serf
+        args:
+          - --config-file=/var/run/flusso/config.yaml
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |-
+              /bin/grpc_health_probe -addr=$HOSTNAME.flusso.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |-
+              /bin/grpc_health_probe -addr=$HOSTNAME.flusso.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
+          initialDelaySeconds: 10
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/flusso
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: {{ .Values.storage }}

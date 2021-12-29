@@ -1,13 +1,15 @@
 .DEFAULT_GOAL := build
-.PHONY: all init gencert build run build_and_run clean test test_coverage dep staticcheck lint format compile
+.PHONY: all init gencert build build-docker run build-and-run clean test test-coverage dep staticcheck lint format compile
 
 BINARY_NAME=flusso
 CONFIG_PATH=${HOME}/.flusso
+DATA_PATH=${CONFIG_PATH}/data
+TAG ?= 0.1.0
 
 all: init gencert build test
 
 init:
-	mkdir -p ${CONFIG_PATH}
+	mkdir -p ${DATA_PATH}
 
 gencert:
 	cfssl gencert \
@@ -52,12 +54,15 @@ $(CONFIG_PATH)/policy.csv:
 	cp test/policy.csv $(CONFIG_PATH)/policy.csv
 
 build:
-	go build -o ${BINARY_NAME} main.go
+	go build -o ${BINARY_NAME} cmd/flusso/main.go
+
+build-docker:
+	docker build -t github.com/danielfsousa/flusso:$(TAG) .
 
 run:
 	./${BINARY_NAME}
 
-build_and_run: build run
+build-and-run: build run
 
 clean:
 	go clean
@@ -66,7 +71,7 @@ clean:
 test: $(CONFIG_PATH)/model.conf $(CONFIG_PATH)/policy.csv
 	go test -race ./...
 
-test_coverage:
+test-cov:
 	go test -race ./... -coverprofile=coverage.out
 
 dep:
