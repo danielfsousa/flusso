@@ -1,0 +1,5 @@
+.git
+.gitignore
+.go-version
+deploy
+./flusso
