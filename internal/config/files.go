@@ -18,7 +18,7 @@ var (
 )
 
 func configFile(filename string) string {
-	if dir := os.Getenv("CA_CONFIG_DIR"); dir != "" {
+	if dir := os.Getenv("CONFIG_DIR"); dir != "" {
 		return filepath.Join(dir, filename)
 	}
 	homeDir, err := os.UserHomeDir()
