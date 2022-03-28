@@ -112,11 +112,7 @@ func (l *DistributedLog) setupRaft(dataDir string) error {
 	if err != nil {
 		return err
 	}
-	hasState, err := raft.HasExistingState(logStore, stableStore, snapshotStore)
-	if err != nil {
-		return err
-	}
-	if l.config.Raft.Bootstrap && !hasState {
+	if l.config.Raft.Bootstrap {
 		config := raft.Configuration{
 			Servers: []raft.Server{{
 				ID:      config.LocalID,
@@ -129,17 +125,14 @@ func (l *DistributedLog) setupRaft(dataDir string) error {
 }
 
 func (l *DistributedLog) Append(record *api.Record) (uint64, error) {
-	res, err := l.apply(
-		AppendRequestType,
-		&api.ProduceRequest{Record: record},
-	)
+	res, err := l.apply(AppendRequestType, &api.ProduceRequest{Record: record})
 	if err != nil {
 		return 0, err
 	}
 	return res.(*api.ProduceResponse).Offset, nil
 }
 
-func (l *DistributedLog) apply(reqType RequestType, req proto.Message) (interface{}, error) {
+func (l *DistributedLog) apply(reqType RequestType, req proto.Message) (any, error) {
 	var buf bytes.Buffer
 	_, err := buf.Write([]byte{byte(reqType)})
 	if err != nil {
@@ -261,23 +254,23 @@ const (
 	AppendRequestType RequestType = 0
 )
 
-func (f *fsm) Apply(record *raft.Log) interface{} {
+func (l *fsm) Apply(record *raft.Log) any {
 	buf := record.Data
 	reqType := RequestType(buf[0])
 	switch reqType {
 	case AppendRequestType:
-		return f.applyAppend(buf[1:])
+		return l.applyAppend(buf[1:])
 	}
 	return nil
 }
 
-func (f *fsm) applyAppend(b []byte) interface{} {
+func (l *fsm) applyAppend(b []byte) any {
 	var req api.ProduceRequest
 	err := proto.Unmarshal(b, &req)
 	if err != nil {
 		return err
 	}
-	offset, err := f.log.Append(req.Record)
+	offset, err := l.log.Append(req.Record)
 	if err != nil {
 		return err
 	}
@@ -290,9 +283,12 @@ func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
 }
 
 func (f *fsm) Restore(r io.ReadCloser) error {
+	if err := f.log.Reset(); err != nil {
+		return err
+	}
 	b := make([]byte, lenWidth)
 	var buf bytes.Buffer
-	for i := 0; ; i++ {
+	for {
 		_, err := io.ReadFull(r, b)
 		if err == io.EOF {
 			break
@@ -306,12 +302,6 @@ func (f *fsm) Restore(r io.ReadCloser) error {
 		record := &api.Record{}
 		if err = proto.Unmarshal(buf.Bytes(), record); err != nil {
 			return err
-		}
-		if i == 0 {
-			f.log.Config.Segment.InitialOffset = record.Offset
-			if err := f.log.Reset(); err != nil {
-				return err
-			}
 		}
 		if _, err = f.log.Append(record); err != nil {
 			return err
@@ -400,11 +390,7 @@ type StreamLayer struct {
 	peerTLSConfig   *tls.Config
 }
 
-func NewStreamLayer(
-	ln net.Listener,
-	serverTLSConfig *tls.Config,
-	peerTLSConfig *tls.Config,
-) *StreamLayer {
+func NewStreamLayer(ln net.Listener, serverTLSConfig, peerTLSConfig *tls.Config) *StreamLayer {
 	return &StreamLayer{
 		ln:              ln,
 		serverTLSConfig: serverTLSConfig,
@@ -421,7 +407,7 @@ func (s *StreamLayer) Dial(addr raft.ServerAddress, timeout time.Duration) (net.
 	if err != nil {
 		return nil, err
 	}
-	// identity to mux this is a raft rpc
+	// identify to mux this is a raft rpc
 	_, err = conn.Write([]byte{byte(RaftRPC)})
 	if err != nil {
 		return nil, err
